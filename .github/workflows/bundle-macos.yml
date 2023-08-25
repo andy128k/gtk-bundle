@@ -1,0 +1,55 @@
+name: Release macOS bundle
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: dtolnay/rust-toolchain@stable
+
+    - name: Install GNU sed
+      run: |
+        brew install gnu-sed
+        ln -s /usr/local/opt/gnu-sed/libexec/gnubin/sed /usr/local/bin/sed
+        sed --version
+
+    - name: Install build tools
+      run: brew install meson ninja xz cmake python@3.11
+
+    - name: Configure jhbuild
+      run: |
+        cp ./jhbuild-custom ~/.jhbuildrc-custom
+        wget https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-setup.sh
+        chmod +x gtk-osx-setup.sh
+        ./gtk-osx-setup.sh
+        sed -i 's/^module_cmakeargs\["freetype"\] = /module_cmakeargs["freetype"] = module_cmakeargs.get("freetype", "") + " " + /' ~/.config/jhbuildrc
+        sed -i 's/^module_cmakeargs\["freetype-no-harfbuzz"\] = /module_cmakeargs["freetype-no-harfbuzz"] = module_cmakeargs.get("freetype-no-harfbuzz", "") + " " + /' ~/.config/jhbuildrc
+
+    - name: Install XML::Parser
+      run: cpan -i XML::Parser
+
+    - name: Bootstrap build tools
+      run: ~/.new_local/bin/jhbuild --no-interact bootstrap-gtk-osx --skip=cmake,xz
+
+    - name: Build meta-gtk-osx-bootstrap
+      run: ~/.new_local/bin/jhbuild --no-interact build meta-gtk-osx-bootstrap
+
+    - name: Build gtk
+      run: ~/.new_local/bin/jhbuild --no-interact build gtk-4
+
+    - name: Archive
+      id: archive
+      run: tar -czvf gtk4-macos.tar.gz ~/gtk
+
+    - uses: softprops/action-gh-release@v1
+      with:
+        files: gtk4-macos.tar.gz

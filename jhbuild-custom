@@ -1,0 +1,9 @@
+print("Applying custom configuriation for jhbuild")
+
+setup_sdk()
+cmakeargs = "-DCMAKE_SYSTEM_IGNORE_PATH=/usr/local"
+
+module_autogenargs["freetype-no-harfbuzz"] = "--with-brotli=no"
+module_autogenargs["freetype"] = "--with-brotli=no"
+module_cmakeargs["freetype-no-harfbuzz"] = "-DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=TRUE -D FT_DISABLE_BROTLI=TRUE"
+module_cmakeargs["freetype"] = "-DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=TRUE -D FT_DISABLE_BROTLI=TRUE"
